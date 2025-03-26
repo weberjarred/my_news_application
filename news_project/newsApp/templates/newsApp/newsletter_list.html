@@ -1,0 +1,47 @@
+<!-- newsletter_list.html -->
+{% extends "newsApp/base.html" %}
+{% block content %}
+<h2>All Newsletters</h2>
+<div class="row">
+    {% for newsletter in newsletters %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ newsletter.title }}</h5>
+                    <!-- Show a small snippet or truncated text -->
+                    <p class="card-text">
+                        {{ newsletter.content|truncatewords:20 }}
+                    </p>
+                    <p>By: {{ newsletter.journalist.username }}</p>
+                    <!-- <p>Status: {{ newsletter.status|capfirst }}</p> -->
+                    <!-- "Read More" button goes to the detail view -->
+                    <a href="{% url 'newsletter_detail' newsletter.id %}" class="btn btn-primary">
+                        Read More
+                    </a>
+                    
+                    {% if newsletter.status == 'draft' and request.user == newsletter.author %}
+                        <!-- Button to submit for approval -->
+                        <form action="{% url 'submit_for_approval' newsletter.pk %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning">Submit for Approval</button>
+                        </form>
+                    {% elif newsletter.status == 'pending' %}
+                        {% if request.user.is_authenticated and is_editor %}
+                            <!-- Approve Form -->
+                            <form action="{% url 'approve_newsletter' newsletter.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success">Approve</button>
+                            </form>
+                            <!-- Reject Form -->
+                            <form action="{% url 'reject_newsletter' newsletter.pk %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Reject</button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

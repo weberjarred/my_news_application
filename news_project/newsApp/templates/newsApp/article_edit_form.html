@@ -1,0 +1,11 @@
+{% extends "newsApp/base.html" %}
+{% load static %}
+{% block content %}
+<h2>Edit Article: {{ article.title }}</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Update</button>
+    <a href="{% url 'article_detail' article.id %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

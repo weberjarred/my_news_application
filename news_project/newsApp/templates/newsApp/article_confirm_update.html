@@ -1,0 +1,16 @@
+{% extends "newsApp/base.html" %}
+{% block content %}
+<h2>Confirm Article Update</h2>
+<p>Are you sure you want to update the article "<strong>{{ article.title }}</strong>"?</p>
+<form method="post">
+    {% csrf_token %}
+    <!-- Include hidden fields to retain the form data -->
+    {{ form.as_p }}
+    <button type="submit" name="confirm" value="yes" class="btn btn-primary">
+        Confirm Update
+    </button>
+    <a href="{% url 'article_detail' article.id %}" class="btn btn-secondary">
+        Cancel
+    </a>
+</form>
+{% endblock %}

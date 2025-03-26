@@ -1,0 +1,29 @@
+<!-- pending_newsletters.html -->
+{% extends "base.html" %} 
+<!-- Remove this line if you are not using a base template -->
+
+{% block content %}
+<h1>Pending Newsletters</h1>
+
+{% for newsletter in object_list %}
+  <div style="border: 1px solid #ccc; margin-bottom: 1rem; padding: 1rem;">
+    <h2>{{ newsletter.title }}</h2>
+    <p>{{ newsletter.content }}</p>
+    <p>Author: {{ newsletter.author.username }}</p>
+
+    <!-- Approve Form -->
+    <form action="{% url 'approve_newsletter' newsletter.pk %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">Approve</button>
+    </form>
+
+    <!-- Reject Form -->
+    <form action="{% url 'reject_newsletter' newsletter.pk %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Reject</button>
+    </form>
+  </div>
+{% empty %}
+  <p>No newsletters are pending approval.</p>
+{% endfor %}
+{% endblock %}

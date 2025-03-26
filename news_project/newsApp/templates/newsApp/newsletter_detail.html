@@ -1,0 +1,44 @@
+<!-- newsletter_detail.html -->
+{% extends "newsApp/base.html" %}
+{% block content %}
+<h2>{{ newsletter.title }}</h2>
+<p>{{ newsletter.content }}</p>
+<p><strong>Publisher:</strong> {{ newsletter.publisher.name }}</p>
+
+{# For readers, show a subscribe button if the article is by a journalist #}
+
+{# For editors – allow edit and delete #}
+{% if user.role == 'editor' %}
+<a href="{% url 'newsletter_edit' newsletter.id %}" class="btn btn-warning">
+    Edit Newsletter
+</a>
+<a href="{% url 'newsletter_delete' newsletter.id %}" class="btn btn-danger"
+    onclick="return confirm('Are you sure you want to remove this article?');">
+    Remove Newsletter
+</a>
+
+{# For journalists viewing their own newsletter – allow edit always, and deletion #}
+{% elif user.role == 'journalist' and newsletter.journalist == user %}
+<a href="{% url 'newsletter_edit' newsletter.id %}" class="btn btn-warning">
+    Edit Newsletter
+</a>
+<a href="{% url 'newsletter_delete' newsletter.id %}" class="btn btn-danger"
+    onclick="return confirm('Are you sure you want to remove this article?');">
+    Remove Newsletter
+</a>
+{% if request.user == newsletter.author and newsletter.status == 'draft' %}
+    <form action="{% url 'submit_for_approval' newsletter.pk %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning">Submit for Approval</button>
+    </form>
+{% endif %}
+<!-- {% if article.status == 'rejected' %}
+<a href="{% url 'article_delete_by_author' article.id %}" class="btn btn-danger"
+    onclick="return confirm('Are you sure you want to delete this rejected article?');">
+    Delete Article
+</a>
+{% endif %} -->
+{% endif %}
+<!-- link back to the list or dashboard -->
+<a href="{% url 'newsletter_list' %}" class="btn btn-secondary">Back to Newsletters</a>
+{% endblock %}
