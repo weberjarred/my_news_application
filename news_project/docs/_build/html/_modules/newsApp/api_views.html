@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>newsApp.api_views &mdash; news_project 00.00.01 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=225f63bd"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            news_project
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">newsApp</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">news_project</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">newsApp.api_views</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for newsApp.api_views</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Defines RESTful API views using Django REST Framework.</span>
+<span class="sd">For example, the ArticleListAPI view returns articles filtered by</span>
+<span class="sd">the reader’s subscriptions if the logged-in user is a reader.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rest_framework</span><span class="w"> </span><span class="kn">import</span> <span class="n">generics</span><span class="p">,</span> <span class="n">permissions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Article</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.serializers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArticleSerializer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
+
+
+<div class="viewcode-block" id="ArticleListCreateAPI">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.api_views.ArticleListCreateAPI">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ArticleListCreateAPI</span><span class="p">(</span><span class="n">generics</span><span class="o">.</span><span class="n">ListCreateAPIView</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API view for listing and creating articles.</span>
+<span class="sd">    This view supports the following operations:</span>
+<span class="sd">    - GET: List all approved articles. If the user is a reader, only</span>
+<span class="sd">      articles from subscribed publishers and journalists are listed.</span>
+<span class="sd">    - POST: Create a new article with the current user set as the author.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queryset (QuerySet): The base queryset for retrieving articles.</span>
+<span class="sd">        serializer_class (Serializer): The serializer class used for</span>
+<span class="sd">        article data.</span>
+<span class="sd">        permission_classes (list): The list of permission classes that</span>
+<span class="sd">        determine access to this view.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        get_queryset(self):</span>
+<span class="sd">            Returns a queryset of approved articles. If the user is a reader,</span>
+<span class="sd">            filters the articles to only include those from subscribed</span>
+<span class="sd">            publishers and journalists.</span>
+<span class="sd">        perform_create(self, serializer):</span>
+<span class="sd">            Saves the new article with the current user set as the author.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">queryset</span> <span class="o">=</span> <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># or filter by role if needed</span>
+    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">ArticleSerializer</span>
+    <span class="n">permission_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">permissions</span><span class="o">.</span><span class="n">IsAuthenticated</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ArticleListCreateAPI.get_queryset">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.api_views.ArticleListCreateAPI.get_queryset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a queryset of approved articles based on the user&#39;s role</span>
+<span class="sd">        and subscriptions.</span>
+
+<span class="sd">        If the user is a reader, the queryset will include articles from</span>
+<span class="sd">        publishers and journalists the user is subscribed to. Otherwise,</span>
+<span class="sd">        it will return all approved articles.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            QuerySet: A queryset of approved articles filtered by the user&#39;s</span>
+<span class="sd">            subscriptions if applicable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;reader&quot;</span><span class="p">:</span>
+            <span class="n">publisher_ids</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">subscriptions_publishers</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">journalist_ids</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">subscriptions_journalists</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;approved&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">publisher__id__in</span><span class="o">=</span><span class="n">publisher_ids</span><span class="p">)</span>
+                    <span class="o">|</span> <span class="n">models</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">author__id__in</span><span class="o">=</span><span class="n">journalist_ids</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;approved&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ArticleListCreateAPI.perform_create">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.api_views.ArticleListCreateAPI.perform_create">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">perform_create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves the serializer instance with the author set to the current user.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializer (Serializer): The serializer instance to be saved.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Automatically set the author to the current user</span>
+        <span class="n">serializer</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">author</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jarred Weber.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
