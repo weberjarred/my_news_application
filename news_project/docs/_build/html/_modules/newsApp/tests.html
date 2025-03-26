@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>newsApp.tests &mdash; news_project 00.00.01 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=225f63bd"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            news_project
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">newsApp</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">news_project</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">newsApp.tests</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for newsApp.tests</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file contains unit tests which cover article creation,</span>
+<span class="sd">approval, and API access using the Arrange-Act-Assert (AAA) pattern.</span>
+
+<span class="sd">These tests ensure that journalists can create articles,</span>
+<span class="sd">editors can approve them, and readers receive the correct API data.</span>
+
+<span class="sd">Unit Testing: The tests implemented in the &#39;tests.py&#39; file</span>
+<span class="sd">utilize the Arrange-Act-Assert (AAA) pattern to thoroughly</span>
+<span class="sd">verify the functionality associated with article creation,</span>
+<span class="sd">approval processes, and the retrieval of data through the API.</span>
+
+
+<span class="sd">new:</span>
+<span class="sd">This file contains unit tests which cover article creation,</span>
+<span class="sd">approval, and API access using the Arrange-Act-Assert (AAA) pattern.</span>
+
+<span class="sd">These tests ensure that journalists can create articles,</span>
+<span class="sd">editors can approve them, and readers receive the correct API data.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.test</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestCase</span><span class="p">,</span> <span class="n">Client</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.urls</span><span class="w"> </span><span class="kn">import</span> <span class="n">reverse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_user_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Article</span><span class="p">,</span> <span class="n">Publisher</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rest_framework.test</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIClient</span>
+
+<span class="n">User</span> <span class="o">=</span> <span class="n">get_user_model</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="NewsAppTests">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.tests.NewsAppTests">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NewsAppTests</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unit tests for the NewsApp.</span>
+
+<span class="sd">    Classes:</span>
+<span class="sd">        NewsAppTests(TestCase): Test case for the NewsApp.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        setUp(self):</span>
+<span class="sd">            Set up test users, publisher, and an article for the tests.</span>
+<span class="sd">        test_article_creation_by_journalist(self):</span>
+<span class="sd">            Test that a journalist can create an article and it remains</span>
+<span class="sd">            pending.</span>
+<span class="sd">        test_article_approval_by_editor(self):</span>
+<span class="sd">            Test that an editor can approve an article.</span>
+<span class="sd">        test_api_article_list_for_reader(self):</span>
+<span class="sd">            Test that a reader can fetch a list of approved articles</span>
+<span class="sd">            via the API.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NewsAppTests.setUp">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.tests.NewsAppTests.setUp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set up the test environment for the test cases.</span>
+
+<span class="sd">        This method performs the following actions:</span>
+<span class="sd">        - Initializes the Django test client and API client.</span>
+<span class="sd">        - Creates test users with different roles: reader, journalist,</span>
+<span class="sd">          and editor.</span>
+<span class="sd">        - Creates a test publisher.</span>
+<span class="sd">        - Adds subscriptions for the reader to follow the created publisher</span>
+<span class="sd">          and journalist.</span>
+<span class="sd">        - Creates a test article with a pending status authored by the</span>
+<span class="sd">          journalist and published by the test publisher.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ARRANGE: Create test users, publisher, and an article.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_client</span> <span class="o">=</span> <span class="n">APIClient</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span>
+            <span class="n">username</span><span class="o">=</span><span class="s2">&quot;reader1&quot;</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Reader@123&quot;</span><span class="p">,</span>
+            <span class="n">role</span><span class="o">=</span><span class="s2">&quot;reader&quot;</span><span class="p">,</span>
+            <span class="n">email</span><span class="o">=</span><span class="s2">&quot;reader1@example.com&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">journalist</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span>
+            <span class="n">username</span><span class="o">=</span><span class="s2">&quot;journalist1&quot;</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Journalist@123&quot;</span><span class="p">,</span>
+            <span class="n">role</span><span class="o">=</span><span class="s2">&quot;journalist&quot;</span><span class="p">,</span>
+            <span class="n">email</span><span class="o">=</span><span class="s2">&quot;journalist1@example.com&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">editor</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span>
+            <span class="n">username</span><span class="o">=</span><span class="s2">&quot;editor1&quot;</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Editor@123&quot;</span><span class="p">,</span>
+            <span class="n">role</span><span class="o">=</span><span class="s2">&quot;editor&quot;</span><span class="p">,</span>
+            <span class="n">email</span><span class="o">=</span><span class="s2">&quot;editor1@example.com&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publisher</span> <span class="o">=</span> <span class="n">Publisher</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Test Publisher&quot;</span><span class="p">)</span>
+        <span class="c1"># Add subscriptions so the reader follows this publisher and</span>
+        <span class="c1"># journalist.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">subscriptions_publishers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">subscriptions_journalists</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">journalist</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">article</span> <span class="o">=</span> <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Test Article&quot;</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Content of test article.&quot;</span><span class="p">,</span>
+            <span class="n">author</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">journalist</span><span class="p">,</span>
+            <span class="n">publisher</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="s2">&quot;pending&quot;</span><span class="p">,</span>  <span class="c1"># Using status instead of approved</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NewsAppTests.test_article_creation_by_journalist">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.tests.NewsAppTests.test_article_creation_by_journalist">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_article_creation_by_journalist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test the creation of an article by a logged-in journalist.</span>
+
+<span class="sd">        GIVEN a journalist is logged in.</span>
+<span class="sd">        WHEN the journalist submits an article.</span>
+<span class="sd">        THEN the article is created and remains pending.</span>
+
+<span class="sd">        Steps:</span>
+<span class="sd">        1. Log in as a journalist with username &quot;journalist1&quot; and</span>
+<span class="sd">           password &quot;Journalist@123&quot;.</span>
+<span class="sd">        2. Submit a POST request to create a new article with title</span>
+<span class="sd">           &quot;New Article&quot;, content &quot;New article content&quot;, and the</span>
+<span class="sd">           publisher&#39;s ID.</span>
+<span class="sd">        3. Verify that the response status code is 302 (indicating a redirect).</span>
+<span class="sd">        4. Retrieve the newly created article by its title and check</span>
+<span class="sd">           that its status is &quot;pending&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># GIVEN a journalist is logged in.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s2">&quot;journalist1&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Journalist@123&quot;</span><span class="p">)</span>
+        <span class="c1"># WHEN the journalist submits an article.</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="n">reverse</span><span class="p">(</span><span class="s2">&quot;article_create&quot;</span><span class="p">),</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;New Article&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;New article content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;publisher&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+        <span class="c1"># THEN the article is created and remains pending.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">302</span><span class="p">)</span>
+        <span class="n">new_article</span> <span class="o">=</span> <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;New Article&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">new_article</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">&quot;pending&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NewsAppTests.test_article_approval_by_editor">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.tests.NewsAppTests.test_article_approval_by_editor">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_article_approval_by_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test the approval of an article by an editor.</span>
+
+<span class="sd">        GIVEN an editor is logged in,</span>
+<span class="sd">        WHEN the editor approves an article,</span>
+<span class="sd">        THEN the article&#39;s status should be updated to &quot;approved&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># GIVEN an editor is logged in.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s2">&quot;editor1&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Editor@123&quot;</span><span class="p">)</span>
+        <span class="c1"># WHEN the editor approves an article.</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="n">reverse</span><span class="p">(</span><span class="s2">&quot;article_approval&quot;</span><span class="p">),</span>
+            <span class="p">{</span><span class="s2">&quot;article_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">article</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="s2">&quot;approve&quot;</span><span class="p">},</span>
+        <span class="p">)</span>
+        <span class="c1"># THEN the article is approved.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">article</span><span class="o">.</span><span class="n">refresh_from_db</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">article</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">&quot;approved&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NewsAppTests.test_api_article_list_for_reader">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.tests.NewsAppTests.test_api_article_list_for_reader">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_api_article_list_for_reader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test that a reader can fetch a list of approved articles via the API.</span>
+
+<span class="sd">        This test performs the following steps:</span>
+<span class="sd">        1. Approves a test article by setting its status to &quot;approved&quot;</span>
+<span class="sd">           and saving it.</span>
+<span class="sd">        2. Logs in a reader user via the API.</span>
+<span class="sd">        3. Fetches the list of articles via the API.</span>
+<span class="sd">        4. Asserts that the API response status code is 200 (OK).</span>
+<span class="sd">        5. Asserts that the API response contains exactly one article,</span>
+<span class="sd">           which is the approved article.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Approve the test article.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">article</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;approved&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">article</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="c1"># GIVEN a reader is logged in via the API.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s2">&quot;reader1&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;Reader@123&quot;</span><span class="p">)</span>
+        <span class="c1"># WHEN the reader fetches articles via the API.</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reverse</span><span class="p">(</span><span class="s2">&quot;api_article_list&quot;</span><span class="p">))</span>
+        <span class="c1"># THEN the API response contains the approved article.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jarred Weber.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

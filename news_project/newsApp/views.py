@@ -1,16 +1,10 @@
 """
-Contains the view functions for user registration, login,
-logout, dashboard, article creation (for journalists), article
-approval (for editors), article listing, and article detail pages.
+Views for the News Application.
 
-Access control is enforced via decorators.
-(Note: The email sending and posting to X are handled via Django signals.)
-
-This section introduces a view enabling an editor to "remove"
-an article. In this instance, the view shows a confirmation page
-(through a GET request), and subsequently marks the article as deleted
-when the editor confirms (using a POST request).
-
+This module defines view functions and class-based views for user
+registration, authentication, article management (creation, editing,
+deletion, listing, and detail), newsletter management, and subscription
+functionality within the news application.
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -28,19 +22,19 @@ from django.http import HttpResponseForbidden
 
 def register(request):
     """
-    Handle user registration.
-    This view handles the registration of a new user. If the request
-    method is POST, it processes the submitted registration form. If the
-    form is valid, it saves the new user, displays a success message, logs
-    the user in, and redirects to the dashboard. If the request method is
-    not POST, it displays an empty registration form.
+    Register a new user.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    Processes the registration form on POST requests. If the form is
+    valid, a new user is created, a success message is displayed,
+    the user is logged in, and they are redirected to the dashboard.
+    For GET requests, an empty registration form is rendered.
 
-    Returns:
-        HttpResponse: The HTTP response object with the rendered registration
-        page or a redirect to the dashboard.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A rendered registration page or a redirect to the dashboard.
+
+    :rtype: HttpResponse
     """
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
@@ -56,19 +50,18 @@ def register(request):
 
 def user_login(request):
     """
-    Handle user login functionality.
-    This view handles both GET and POST requests for user login. If the request
-    method is POST, it processes the login form data, authenticates the user,
-    and logs them in if the credentials are valid. If the request method is
-    GET, it displays the login form.
+    Log in an existing user.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    Processes the authentication form on POST requests. If the form is valid,
+    the user is logged in and redirected to the dashboard. For GET requests, an
+    empty authentication form is rendered.
 
-    Returns:
-        HttpResponse: The HTTP response object. If the login is successful, it
-        redirects to the 'dashboard' page. Otherwise, it renders the login page
-        with the login form.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A rendered login page or a redirect to the dashboard.
+
+    :rtype: HttpResponse
     """
     from django.contrib.auth.forms import AuthenticationForm
 
@@ -85,13 +78,16 @@ def user_login(request):
 
 def user_logout(request):
     """
-    Logs out the current user and redirects them to the login page.
+    Log out the current user.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    Logs out the user and redirects them to the login page.
 
-    Returns:
-        HttpResponseRedirect: A redirect to the login page.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A redirect to the login page.
+
+    :rtype: HttpResponse
     """
     logout(request)
     return redirect("login")
@@ -100,20 +96,18 @@ def user_logout(request):
 @login_required
 def dashboard(request):
     """
-    Renders the dashboard view based on the user's role.
+    Display the dashboard for the logged-in user.
 
-    Args:
-        request (HttpRequest): The HTTP request object containing user
-        information.
+    For journalists, displays all authored articles.
+    For editors, displays pending articles. The context is built based
+    on the user's role and then rendered in the dashboard template.
 
-    Returns:
-        HttpResponse: The rendered dashboard HTML page with context data.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
 
-    Context:
-        user_articles (QuerySet): A queryset of articles authored by the
-        journalist if the user is a journalist.
-        pending_articles (QuerySet): A queryset of articles pending review
-        if the user is an editor.
+    :return: A rendered dashboard page.
+
+    :rtype: HttpResponse
     """
     context = {}
     if request.user.role == "journalist":
@@ -136,26 +130,19 @@ def dashboard(request):
 @login_required
 def article_create(request):
     """
-    Handle the creation of a new article by a journalist.
+    Create a new article.
 
-    This view function allows only users with the role of 'journalist' to
-    create articles.
-    If the user is not a journalist, they are redirected to the dashboard
-    with an error message.
-    If the request method is POST, it processes the submitted form data to
-    create a new article.
-    If the form is valid, the article is saved with the current user as the
-    author, and a success message is displayed.
-    If the form is invalid, the form errors are printed for debugging,
-    and an error message is displayed.
-    If the request method is not POST, an empty form is rendered.
+    Only users with the role 'journalist' can create articles.
+    On POST, the submitted ArticleForm is validated and saved with
+    the current user as the author. On GET,
+    an empty ArticleForm is rendered.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
 
-    Returns:
-        HttpResponse: The HTTP response object with the rendered template
-        or a redirect.
+    :return: A rendered article creation form or a redirect to the dashboard.
+
+    :rtype: HttpResponse
     """
     # Only journalists are allowed to create articles.
     if request.user.role != "journalist":
@@ -182,29 +169,19 @@ def article_create(request):
 @user_passes_test(lambda u: u.role == "editor")
 def article_approval(request):
     """
-    Handles the approval or rejection of pending articles.
-    This view fetches all articles with a status of "pending" and
-    displays them.
-    If a POST request is made, it processes the approval or rejection
-    of a specific article.
+    Approve or reject pending articles.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    For POST requests, retrieves the article by its ID and processes
+    the approval or rejection based on the submitted action. Updates
+    the article status accordingly and redirects to the dashboard.
+    For GET requests, renders the article approval template.
 
-    Returns:
-        HttpResponse: Renders the article approval page with pending articles
-        if GET request.
-        HttpResponseRedirect: Redirects to the dashboard or article approval
-        page after processing POST request.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
 
-    POST Parameters:
-        article_id (str): The ID of the article to be approved or rejected.
-        action (str): The action to be taken on the article,
-                      either "approve" or "reject".
+    :return: A rendered approval page or a redirect to the dashboard.
 
-    Raises:
-        Http404: If the article with the given ID does not exist
-        or is not pending.
+    :rtype: HttpResponse
     """
     pending_articles = Article.objects.filter(
         status="pending", is_deleted=False
@@ -238,18 +215,18 @@ def article_approval(request):
 
 def article_list(request):
     """
-    View function to display a list of approved and non-deleted articles.
+    List all approved articles.
 
-    This function retrieves articles from the database that have a status of
-    "approved" and are not marked as deleted. The articles are then ordered
-    by their creation date in descending order and rendered to the
-    'newsApp/article_list.html' template.
+    Retrieves articles with status 'approved' that are not deleted
+    and orders them by creation date in descending order. Renders
+    the article list template.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
 
-    Returns:
-        HttpResponse: The rendered HTML page displaying the list of articles.
+    :return: A rendered article list page.
+
+    :rtype: HttpResponse
     """
     articles = Article.objects.filter(
         status="approved", is_deleted=False
@@ -260,23 +237,20 @@ def article_list(request):
 @login_required
 def article_detail(request, pk):
     """
-    View function to display the details of an article based on the user's
-    role.
+    Display the details of a specific article.
 
-    Parameters:
-    request (HttpRequest): The HTTP request object containing user
-    information.
-    pk (int): The primary key of the article to be retrieved.
+    Editors can view any non-deleted article. Journalists can view
+    their own articles regardless of status, but cannot view others'
+    unapproved articles. Readers see only approved articles.
 
-    Returns:
-    HttpResponse: The rendered article detail page or an HTTP 403
-    Forbidden response.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the article.
+    :type pk: int
 
-    Behavior:
-    - Editors can view any article that is not soft-deleted.
-    - Journalists can view their own articles regardless of status.
-    - They cannot view others' unapproved articles.
-    - Readers can only view approved articles that are not soft-deleted.
+    :return: A rendered article detail page or an HTTP forbidden response.
+
+    :rtype: HttpResponse
     """
     if request.user.role == "editor":
         # Editors can view any article that isn’t soft-deleted.
@@ -301,30 +275,22 @@ def article_detail(request, pk):
 @login_required
 def article_delete(request, pk):
     """
-    Handle the deletion of an article.
-    This view function handles both GET and POST requests for
-    deleting an article.
-    It performs access checks based on the user's role and the article's
-    status.
+    Soft-delete an article.
 
-    Parameters:
-    request (HttpRequest): The HTTP request object.
-    pk (int): The primary key of the article to be deleted.
+    Editors may delete any article, while journalists can only delete
+    their own articles if the article status is 'rejected'. On a POST
+    request, marks the article as deleted and redirects to the
+    dashboard; on a GET request, renders a delete confirmation
+    template.
 
-    Access Control:
-    - Editors can delete any article.
-    - Journalists can only delete their own articles if the article's status
-      is 'rejected'.
-    - Other users do not have permission to delete articles.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the article.
+    :type pk: int
 
-    Behavior:
-    - If the request method is GET, renders a confirmation template.
-    - If the request method is POST, performs a soft-delete by setting
-      `is_deleted` to True and saves the article.
+    :return: A rendered confirmation page or a redirect.
 
-    Returns:
-    HttpResponse: A response object that either renders a confirmation
-    template or redirects to another view.
+    :rtype: HttpResponse
     """
     article = get_object_or_404(Article, pk=pk, is_deleted=False)
 
@@ -365,20 +331,19 @@ def article_delete(request, pk):
 @login_required
 def subscribe_journalist(request, journalist_id):
     """
-    Allows a reader to subscribe to a journalist.
-    Args:
-        request (HttpRequest): The HTTP request object containing user
-        information.
-        journalist_id (int): The ID of the journalist to subscribe to.
+    Subscribe the current reader to a journalist.
 
-    Returns:
-        HttpResponse: Redirects to the dashboard if the user is not a reader.
-                      Redirects to the subscriptions page with a success
-                      message if the subscription is successful.
+    Only readers can subscribe. Adds the journalist to the reader's
+    subscriptions and redirects to the subscriptions page.
 
-    Raises:
-        Http404: If the journalist with the given ID does not exist
-        or is not a journalist.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param journalist_id: The primary key of the journalist.
+    :type journalist_id: int
+
+    :return: A redirect to the subscriptions page.
+
+    :rtype: HttpResponse
     """
     if request.user.role != "reader":
         messages.error(request, "Only readers can subscribe to journalists.")
@@ -396,23 +361,17 @@ def subscribe_journalist(request, journalist_id):
 @login_required
 def subscriptions(request):
     """
-    Handle the subscriptions view for readers.
-    This view ensures that only users with the role of 'reader' can access
-    their subscriptions.
-    If the user is not a reader, an error message is displayed and the user
-    is redirected to the dashboard.
-    If the user is a reader, it retrieves all journalists the reader is
-    subscribed to and renders the 'subscriptions.html' template with the
-    list of subscribed journalists.
+    Display the subscriptions page for readers.
 
-    Args:
-        request (HttpRequest): The HTTP request object containing user
-        information.
+    Retrieves all subscribed journalists for the reader and renders the
+    subscriptions template.
 
-    Returns:
-        HttpResponse: The rendered 'subscriptions.html' template with the
-        context of subscribed journalists, or a redirect to the dashboard
-        if the user is not a reader.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A rendered subscriptions page.
+
+    :rtype: HttpResponse
     """
     # Ensure only readers see subscriptions
     if request.user.role != "reader":
@@ -431,28 +390,20 @@ def subscriptions(request):
 @login_required
 def journalist_articles(request, journalist_id):
     """
-    View function to display articles written by a specific journalist.
+    Display all approved articles for a given journalist.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        journalist_id (int): The ID of the journalist.
+    Retrieves the journalist by ID and fetches their approved,
+    non-deleted articles, then renders the journalist articles
+    template.
 
-    Returns:
-        HttpResponse: The rendered HTML page displaying the journalist's
-        articles.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param journalist_id: The primary key of the journalist.
+    :type journalist_id: int
 
-    Raises:
-        Http404: If the journalist with the given ID does not exist
-        or is not a journalist.
+    :return: A rendered page with the journalist's articles.
 
-    The function performs the following actions:
-        1. Retrieves the journalist by their ID and ensures their role is
-           'journalist'.
-        2. Retrieves only approved, non-deleted articles written by the
-           journalist.
-        3. Orders the articles by creation date in descending order.
-        4. Renders the 'journalist_articles.html' template with the journalist
-           and their articles.
+    :rtype: HttpResponse
     """
     # Get the journalist by id and ensure their role is 'journalist'
     journalist = get_object_or_404(
@@ -475,26 +426,21 @@ def journalist_articles(request, journalist_id):
 @login_required
 def article_delete_by_author(request, pk):
     """
-    Handle the deletion of an article by its author.
-    This view allows an author to delete their own article if it meets the
-    following conditions:
-    - The article is not already deleted.
-    - The article is authored by the logged-in journalist.
-    - The article has a status of "rejected".
-    If the request method is POST, the article's `is_deleted` attribute is set
-    to True, the article is saved, and a success message is displayed.
-    The user is then redirected
-    to the dashboard.
-    If the request method is not POST, the article confirmation delete page
-    is rendered.
+    Allow a journalist to delete their own rejected article.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the article to be deleted.
+    Ensures the article is not already deleted, is authored by the
+    current user, and has a status of 'rejected'. On POST, marks the
+    article as deleted and redirects to the dashboard; on GET, renders
+    a confirmation template.
 
-    Returns:
-        HttpResponse: The response object containing the rendered template
-        or a redirect.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the article.
+    :type pk: int
+
+    :return: A rendered confirmation page or a redirect.
+
+    :rtype: HttpResponse
     """
     # Only allow deletion if the article is not already deleted,
     # is authored by the logged-in journalist, and is rejected.
@@ -518,18 +464,20 @@ def article_delete_by_author(request, pk):
 
 def category_articles(request, slug):
     """
-    View function to display articles belonging to a specific category.
+    Display articles belonging to a specific category.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        slug (str): The slug of the category to filter articles by.
+    Retrieves the category using the slug and filters for approved,
+    non-deleted articles within that category, then renders the
+    corresponding template.
 
-    Returns:
-        HttpResponse: The rendered HTML page displaying the articles of the
-        specified category.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param slug: The slug identifier for the category.
+    :type slug: str
 
-    Raises:
-        Http404: If the category with the given slug does not exist.
+    :return: A rendered page with articles for the category.
+
+    :rtype: HttpResponse
     """
     category = get_object_or_404(Category, slug=slug)
     # Filter articles that belong to this category (and perhaps are approved,
@@ -550,16 +498,17 @@ def category_articles(request, slug):
 @login_required
 def homepage(request):
     """
-    View function for the homepage.
+    Display the homepage with a list of approved articles.
 
-    This function retrieves all approved and non-deleted articles from the
-    database, ordered by the newest first, and renders them on the homepage.
+    Retrieves all approved, non-deleted articles ordered by newest
+    first and renders the homepage template.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
 
-    Returns:
-        HttpResponse: The rendered homepage with the list of articles.
+    :return: A rendered homepage.
+
+    :rtype: HttpResponse
     """
     # Get all approved, non-deleted articles ordered by newest first
     articles = Article.objects.filter(
@@ -572,21 +521,21 @@ def homepage(request):
 @login_required
 def article_edit(request, pk):
     """
-    Handle the editing of an article.
-    This view allows only editors or the journalist who authored the article
-    to edit it.
-    If the user does not have the appropriate permissions,
-    a 403 Forbidden response is returned.
+    Edit an existing article.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the article to be edited.
+    Allows editing only if the current user is an editor or the
+    journalist who authored the article. Processes the article
+    form on POST, saving updates if valid, and renders the edit
+    form on GET.
 
-    Returns:
-        HttpResponse: The rendered HTML page for editing the article,
-        or a redirect to the article detail page if the form is
-        successfully submitted and valid. If the user does not have
-        permission, an HttpResponseForbidden is returned.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the article.
+    :type pk: int
+
+    :return: A rendered edit page or a redirect after successful update.
+
+    :rtype: HttpResponse
     """
     article = get_object_or_404(Article, pk=pk, is_deleted=False)
 
@@ -618,16 +567,17 @@ def article_edit(request, pk):
 
 def newsletter_list(request):
     """
-    View function to display a list of newsletters.
-    This function fetches all newsletters from the database and passes them
-    to the 'newsletter_list.html' template for rendering.
+    List newsletters.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    Retrieves all newsletters (or a filtered set) and renders them in
+    the newsletter list template.
 
-    Returns:
-        HttpResponse: The rendered HTML page displaying the list of
-        newsletters.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A rendered newsletter list page.
+
+    :rtype: HttpResponse
     """
     # Fetch all newsletters or filter them as needed
     newsletters = Newsletter.objects.all()
@@ -642,14 +592,19 @@ def newsletter_list(request):
 @login_required
 def newsletter_detail(request, pk):
     """
-    View function to display the details of a specific newsletter.
+    Display the details of a single newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be retrieved.
+    Retrieves a newsletter by its primary key and renders the
+    newsletter detail template.
 
-    Returns:
-        HttpResponse: The rendered HTML page displaying the newsletter details.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
+
+    :return: A rendered newsletter detail page.
+
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
     return render(
@@ -660,22 +615,20 @@ def newsletter_detail(request, pk):
 @login_required
 def newsletter_create(request):
     """
-    Handle the creation of a newsletter.
-    Only users with the role of 'journalist' are allowed to create newsletters.
-    If the user is not a journalist, an error message is displayed and the user
-    is redirected to the dashboard.
-    If the request method is POST, the function attempts to create a new
-    newsletter using the data submitted in the form. If the form is valid, the
-    newsletter is saved with the current user set as the journalist, a success
-    message is displayed, and the user is redirected to the newsletter list.
-    If the request method is not POST, an empty form is rendered.
+    Create a new newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
+    Only journalists are allowed to create newsletters. On POST,
+    processes the newsletter form, assigns the current user as the
+    author, and saves the newsletter. On GET, renders an empty
+    newsletter form.
 
-    Returns:
-        HttpResponse: The rendered newsletter creation page or a redirect
-        response.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+
+    :return: A rendered newsletter creation page or a redirect to the
+    newsletter list.
+
+    :rtype: HttpResponse
     """
     # Only journalists can create
     if request.user.role != "journalist":
@@ -699,30 +652,21 @@ def newsletter_create(request):
 @login_required
 def newsletter_edit(request, pk):
     """
-    View to edit an existing newsletter.
+    Edit an existing newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be edited.
+    Checks user role and ownership before allowing editing. On POST,
+    updates the newsletter if the form is valid; on GET, renders
+    the edit form.
 
-    Returns:
-        HttpResponse: The HTTP response object with the rendered template
-        or a redirect.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
 
-    Raises:
-        Http404: If the newsletter with the given primary key does not exist.
+    :return: A rendered newsletter edit page or a redirect after a
+    successful update.
 
-    Permissions:
-        - Editors can always edit newsletters.
-        - Journalists can only edit their own newsletters.
-        - Other users do not have permission to edit newsletters.
-
-    Template:
-        newsApp/newsletter_edit.html
-
-    Context:
-        form (NewsletterForm): The form to edit the newsletter.
-        newsletter (Newsletter): The newsletter instance being edited.
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
 
@@ -764,23 +708,20 @@ def newsletter_edit(request, pk):
 @login_required
 def newsletter_delete(request, pk):
     """
-    Handle the deletion of a newsletter.
-    This view function handles the deletion of a newsletter based on the user's
-    role and ownership.
-    Only users with the role of "editor" or the owner "journalist"
-    of the newsletter can delete it.
+    Delete a newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be deleted.
+    Checks that the current user is either an editor or the author
+    of the newsletter. On POST, deletes the newsletter and redirects
+    to the newsletter list. On GET, renders a confirmation template.
 
-    Returns:
-        HttpResponse: Redirects to the newsletter detail page if the user
-        does not have permission to delete the newsletter.
-        HttpResponse: Redirects to the newsletter list page after
-        successful deletion.
-        HttpResponse: Renders the newsletter confirmation delete page
-        if the request method is not POST.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
+
+    :return: A rendered delete confirmation page or a redirect.
+
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
 
@@ -816,17 +757,20 @@ def newsletter_delete(request, pk):
 #  Journalist Submits Newsletter for Approval
 def submit_for_approval(request, pk):
     """
-    Handles the submission of a newsletter for approval.
+    Submit a newsletter for approval.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be submitted for
-        approval.
+    Verifies that the current user is the author of the newsletter,
+    changes its status to 'pending', saves it, and redirects to the
+    newsletter detail page.
 
-    Returns:
-        HttpResponse: Redirects to the newsletter detail page if the
-        submission is successful.
-        HttpResponseForbidden: If the user is not the author of the newsletter.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
+
+    :return: A redirect to the newsletter detail page.
+
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
     if newsletter.author != request.user:
@@ -843,53 +787,37 @@ def submit_for_approval(request, pk):
 # You can create a list view for that:
 class PendingNewslettersListView(ListView):
     """
-    View to display a list of pending newsletters.
-    This view inherits from Django's ListView and is used to display
-    newsletters
-    that have a status of "pending". It restricts access to users who are part
-    of the "Editors" group.
+    ListView to display pending newsletters.
 
-    Attributes:
-        model (Newsletter): The model that this view will operate on.
-        template_name (str): The template to render the list of pending
-        newsletters.
-
-    Methods:
-        get_queryset(): Returns a queryset of newsletters that are pending.
-        dispatch(request, *args, **kwargs): Restricts access to the view to
-        users
-            who are part of the "Editors" group. Returns an HTTP 403 Forbidden
-            response if the user is not an editor.
+    Only newsletters with a status of 'pending' are shown. Access
+    to this view is restricted to users in the 'Editors' group.
     """
     model = Newsletter
     template_name = "pending_newsletters.html"
 
     def get_queryset(self):
         """
-        Returns a queryset of Newsletter objects that are pending.
+        Retrieve newsletters that are pending approval.
 
-        This method filters the Newsletter objects to include only those
-        with a status of "pending".
+        :return: A QuerySet of pending Newsletter objects.
 
-        Returns:
-            QuerySet: A queryset of pending Newsletter objects.
+        :rtype: QuerySet
         """
         # Only show newsletters that are pending
         return Newsletter.objects.filter(status="pending")
 
     def dispatch(self, request, *args, **kwargs):
         """
-        Overrides the dispatch method to restrict access to editors only.
+        Restrict view access to editors only.
 
-        Args:
-            request (HttpRequest): The HTTP request object.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+        :param request: The HTTP request object.
+        :param args: Additional positional arguments.
+        :param kwargs: Additional keyword arguments.
 
-        Returns:
-            HttpResponseForbidden: If the user is not in the "Editors" group.
-            HttpResponse: The response from the superclass dispatch method
-            if the user is in the "Editors" group.
+        :return: An HTTP response if permitted, otherwise an
+        HttpResponseForbidden.
+
+        :rtype: HttpResponse
         """
         # Restrict access to editors only
         if not request.user.groups.filter(name="Editors").exists():
@@ -901,19 +829,20 @@ class PendingNewslettersListView(ListView):
 # simple function-based views for approving:
 def approve_newsletter(request, pk):
     """
-    Approves a newsletter if the user is an editor.
+    Approve a newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be approved.
+    Checks if the current user is in the 'Editors' group, sets the
+    newsletter's status to 'approved', and saves it. Redirects to
+    the pending newsletters page.
 
-    Returns:
-        HttpResponse: A redirect to the pending newsletters page if the
-        newsletter is approved.
-        HttpResponseForbidden: If the user is not an editor.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
 
-    Raises:
-        Http404: If the newsletter with the given primary key does not exist.
+    :return: A redirect to the pending newsletters page.
+
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
     # Check if user is an editor
@@ -929,25 +858,20 @@ def approve_newsletter(request, pk):
 # simple function-based views for rejecting:
 def reject_newsletter(request, pk):
     """
-    Rejects a newsletter based on its primary key (pk).
-    This view function retrieves a newsletter object using the provided primary
-    key (pk).
-    It checks if the requesting user belongs to the "Editors" group.
-    If the user is not an editor,
-    it returns an HTTP 403 Forbidden response. If the user is an editor,
-    it changes the status
-    of the newsletter to "rejected" and saves the changes.
-    Finally, it redirects to the "pending_newsletters" view.
+    Reject a newsletter.
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        pk (int): The primary key of the newsletter to be rejected.
+    Checks if the current user is in the 'Editors' group, sets the
+    newsletter's status to 'rejected', and saves it. Redirects to
+    the pending newsletters page.
 
-    Returns:
-        HttpResponse: A redirect to the "pending_newsletters" view if the user
-        is an editor.
-        HttpResponseForbidden: An HTTP 403 Forbidden response if the user is
-        not an editor.
+    :param request: The HTTP request object.
+    :type request: HttpRequest
+    :param pk: The primary key of the newsletter.
+    :type pk: int
+
+    :return: A redirect to the pending newsletters page.
+
+    :rtype: HttpResponse
     """
     newsletter = get_object_or_404(Newsletter, pk=pk)
     # Check if user is an editor
@@ -961,36 +885,21 @@ def reject_newsletter(request, pk):
 
 class NewsletterListView(ListView):
     """
-    NewsletterListView
-    This view inherits from Django's ListView and is used to display a list of
-    newsletters.
+    ListView to display newsletters.
 
-    Attributes:
-        model (Newsletter): The model that this view will operate on.
-        template_name (str): The name of the template to render the list of
-        newsletters.
-
-    Methods:
-        get_queryset(self):
-            Returns a queryset of newsletters based on the user's group
-            membership.
-            - Editors, Journalists, and Readers can see all newsletters.
-            - Other users can only see newsletters with the status "approved".
+    For editors, journalists, or readers, all newsletters are
+    shown; otherwise, only approved newsletters are displayed.
     """
     model = Newsletter
     template_name = "newsletter_list.html"
 
     def get_queryset(self):
         """
-        Returns the queryset of newsletters based on the user's group
-        membership.
+        Retrieve the queryset of newsletters based on the user's role.
 
-        - Editors, Journalists, and Readers can see all newsletters.
-        - Other users can only see newsletters with the status "approved".
+        :return: A QuerySet of Newsletter objects.
 
-        Returns:
-            QuerySet: A queryset of newsletters filtered based on the user's
-            group membership.
+        :rtype: QuerySet
         """
         # Show only approved newsletters to non-editors.
         # Editors might see all newsletters if you want that behavior.

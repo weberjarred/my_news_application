@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>newsApp.models &mdash; news_project 00.00.01 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=225f63bd"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            news_project
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">newsApp</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">news_project</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">newsApp.models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for newsApp.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Defines the core data models for CustomUser, Publisher, Article,</span>
+<span class="sd">and the Newsletter.</span>
+
+<span class="sd">The CustomUser model extends Django’s AbstractUser and includes</span>
+<span class="sd">a role field as well as subscriptions for readers.</span>
+
+<span class="sd">The Article model has an “approved” flag, and the Publisher model</span>
+<span class="sd">relates to multiple editors and journalists.</span>
+
+<span class="sd">The custom user model and group assignments in models.py</span>
+<span class="sd">guarantee user role assignments. The views limit access according</span>
+<span class="sd">to these roles (for instance, only journalists are allowed to</span>
+<span class="sd">create articles, while only editors can approve them).</span>
+
+<span class="sd">Additionally, the registration form enforces password</span>
+<span class="sd">complexity requirements.</span>
+
+<span class="sd">This file includes a secure article removal feature for editors,</span>
+<span class="sd">utilizing a soft-delete mechanism. Instead of permanently removing</span>
+<span class="sd">an article from the database, you can simply mark it as removed</span>
+<span class="sd">(or archived). This approach not only ensures an audit trail but</span>
+<span class="sd">also allows for the recovery of the article if necessary.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractUser</span>
+
+
+<span class="c1"># Define available roles</span>
+<span class="n">ROLE_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s2">&quot;reader&quot;</span><span class="p">,</span> <span class="s2">&quot;Reader&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;editor&quot;</span><span class="p">,</span> <span class="s2">&quot;Editor&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;journalist&quot;</span><span class="p">,</span> <span class="s2">&quot;Journalist&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">STATUS_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;pending&quot;</span><span class="p">,</span> <span class="s2">&quot;Pending&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;approved&quot;</span><span class="p">,</span> <span class="s2">&quot;Approved&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;rejected&quot;</span><span class="p">,</span> <span class="s2">&quot;Rejected&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="CustomUser">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.CustomUser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomUser</span><span class="p">(</span><span class="n">AbstractUser</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Custom user model that extends the default Django AbstractUser model.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        role (str): The role of the user, chosen from predefined ROLE_CHOICES.</span>
+<span class="sd">        subscriptions_publishers (ManyToManyField): A many-to-many</span>
+<span class="sd">        relationship to the Publisher model, representing the</span>
+<span class="sd">        publishers the user is subscribed to.</span>
+<span class="sd">        subscriptions_journalists (ManyToManyField): A many-to-many</span>
+<span class="sd">        relationship to other CustomUser instances, representing the</span>
+<span class="sd">        journalists the user is subscribed to.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        save(*args, **kwargs): Overrides the default save method to</span>
+<span class="sd">        automatically add the user to a group based on their role.</span>
+<span class="sd">        __str__(): Returns the username of the user.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">ROLE_CHOICES</span><span class="p">)</span>
+    <span class="n">subscriptions_publishers</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span>
+        <span class="s2">&quot;Publisher&quot;</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;subscribed_readers&quot;</span>
+    <span class="p">)</span>
+    <span class="n">subscriptions_journalists</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span>
+        <span class="s2">&quot;self&quot;</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;subscribed_readers_by&quot;</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="CustomUser.save">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.CustomUser.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Overrides the save method to automatically add the user to a group</span>
+<span class="sd">        based on their role.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable length argument list.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+
+<span class="sd">        Side Effects:</span>
+<span class="sd">            Adds the user to a Django group corresponding to their role.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Automatically add user to a group based on their role.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+
+        <span class="n">group</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">Group</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">role</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CustomUser.__str__">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.CustomUser.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Publisher">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Publisher">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Publisher</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Publisher model representing a publishing entity.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name (str): The name of the publisher.</span>
+<span class="sd">        description (str): A brief description of the publisher.</span>
+<span class="sd">        editors (ManyToManyField): A many-to-many relationship to CustomUser</span>
+<span class="sd">        representing the editors associated with the publisher.</span>
+<span class="sd">        journalists (ManyToManyField): A many-to-many relationship to</span>
+<span class="sd">        CustomUser representing the journalists associated with the publisher.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        __str__(): Returns the string representation of the publisher,</span>
+<span class="sd">        which is its name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">255</span><span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span><span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># A publisher can have multiple editors and journalists.</span>
+    <span class="n">editors</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span>
+        <span class="n">CustomUser</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;editing_publishers&quot;</span>
+    <span class="p">)</span>
+    <span class="n">journalists</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span>
+        <span class="n">CustomUser</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;journalism_publishers&quot;</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="Publisher.__str__">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Publisher.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+</div>
+
+
+
+<span class="c1"># soft-delete functionality employed</span>
+<span class="c1"># clearer distinction between “Pending,” “Approved,” and “Rejected,” added.</span>
+<span class="c1"># A status field is added to the Article model.</span>
+<div class="viewcode-block" id="Article">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Article">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Article</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents an article in the news application.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        CATEGORY_CHOICES (list): List of category choices for the article.</span>
+<span class="sd">        title (str): The title of the article.</span>
+<span class="sd">        content (str): The content of the article.</span>
+<span class="sd">        author (CustomUser): The author of the article.</span>
+<span class="sd">        publisher (Publisher): The publisher of the article.</span>
+<span class="sd">        category (Category): The category of the article.</span>
+<span class="sd">        status (str): The status of the article, e.g., &#39;pending&#39;,</span>
+<span class="sd">        &#39;approved&#39;, &#39;rejected&#39;.</span>
+<span class="sd">        is_deleted (bool): Indicates if the article is deleted.</span>
+<span class="sd">        created_at (datetime): The date and time when the article was created.</span>
+<span class="sd">        updated_at (datetime): The date and time when the article was last</span>
+<span class="sd">        updated.</span>
+<span class="sd">        approved_by (CustomUser): The editor who approved the article.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        __str__(): Returns the title of the article.</span>
+<span class="sd">        approve(editor): Sets the status to &#39;approved&#39; and records</span>
+<span class="sd">        the editor who approved it.</span>
+<span class="sd">        reject(): Sets the status to &#39;rejected&#39;.</span>
+<span class="sd">        is_approved(): Checks if the article is in &#39;approved&#39; status.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">CATEGORY_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;news&quot;</span><span class="p">,</span> <span class="s2">&quot;News&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;business&quot;</span><span class="p">,</span> <span class="s2">&quot;Business&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;tech&quot;</span><span class="p">,</span> <span class="s2">&quot;Tech&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;sport&quot;</span><span class="p">,</span> <span class="s2">&quot;Sport&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;investigations&quot;</span><span class="p">,</span> <span class="s2">&quot;Investigations&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;politics&quot;</span><span class="p">,</span> <span class="s2">&quot;Politics&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;opinion&quot;</span><span class="p">,</span> <span class="s2">&quot;Opinion&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;lifestyle&quot;</span><span class="p">,</span> <span class="s2">&quot;Lifestyle&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;food&quot;</span><span class="p">,</span> <span class="s2">&quot;Food&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;climate&quot;</span><span class="p">,</span> <span class="s2">&quot;Climate / Weather&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">,</span> <span class="s2">&quot;Special Projects&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">255</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+    <span class="n">author</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">CustomUser</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">CASCADE</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;articles&quot;</span>
+    <span class="p">)</span>
+    <span class="n">publisher</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s2">&quot;Publisher&quot;</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">SET_NULL</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;articles&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">category</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s2">&quot;Category&quot;</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">SET_NULL</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;articles&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Instead of just approved=True/False, we track multiple states:</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">STATUS_CHOICES</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;pending&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">is_deleted</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">created_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">updated_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">approved_by</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">CustomUser</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">SET_NULL</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;approved_articles&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="Article.__str__">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Article.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span></div>
+
+
+    <span class="c1"># helper methods:</span>
+<div class="viewcode-block" id="Article.approve">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Article.approve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">approve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">editor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set status to &#39;approved&#39; and record the editor who approved it.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;approved&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">approved_by</span> <span class="o">=</span> <span class="n">editor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Article.reject">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Article.reject">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reject</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set status to &#39;rejected&#39;.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;rejected&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Article.is_approved">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Article.is_approved">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_approved</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if article is in &#39;approved&#39; status.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;approved&quot;</span></div>
+</div>
+
+
+
+<span class="c1"># Create a Category Model</span>
+<div class="viewcode-block" id="Newsletter">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Newsletter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Newsletter</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Model representing a newsletter.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        STATUS_CHOICES (list): List of tuples representing the possible</span>
+<span class="sd">        status choices for a newsletter.</span>
+<span class="sd">        title (CharField): The title of the newsletter.</span>
+<span class="sd">        content (TextField): The content of the newsletter.</span>
+<span class="sd">        journalist (ForeignKey): Foreign key to the CustomUser model,</span>
+<span class="sd">        representing the journalist who wrote the newsletter.</span>
+<span class="sd">        publisher (ForeignKey): Foreign key to the Publisher model,</span>
+<span class="sd">        representing the publisher of the newsletter. Can be null or blank.</span>
+<span class="sd">        status (CharField): The current status of the newsletter, with choices</span>
+<span class="sd">        defined in STATUS_CHOICES. Defaults to &quot;draft&quot;.</span>
+<span class="sd">        created_at (DateTimeField): The date and time when the newsletter was</span>
+<span class="sd">        created. Automatically set on creation.</span>
+<span class="sd">        updated_at (DateTimeField): The date and time when the newsletter was</span>
+<span class="sd">        last updated. Automatically set on update.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        __str__(): Returns the title of the newsletter as its string</span>
+<span class="sd">        representation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">STATUS_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;draft&quot;</span><span class="p">,</span> <span class="s2">&quot;Draft&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;pending&quot;</span><span class="p">,</span> <span class="s2">&quot;Pending Approval&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;approved&quot;</span><span class="p">,</span> <span class="s2">&quot;Approved&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;rejected&quot;</span><span class="p">,</span> <span class="s2">&quot;Rejected&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">title</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">255</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+    <span class="n">journalist</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">CustomUser</span><span class="p">,</span> <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">CASCADE</span><span class="p">,</span> <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;newsletters&quot;</span>
+    <span class="p">)</span>
+    <span class="n">publisher</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">Publisher</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">SET_NULL</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">related_name</span><span class="o">=</span><span class="s2">&quot;newsletters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">STATUS_CHOICES</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;draft&quot;</span>
+    <span class="p">)</span>
+    <span class="c1"># approved = models.BooleanField(default=False)</span>
+    <span class="n">created_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">updated_at</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Newsletter.__str__">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Newsletter.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Category">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Category">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Category</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Category model representing a news category.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        name (CharField): The name of the category, must be unique and have a</span>
+<span class="sd">        maximum length of 100 characters.</span>
+<span class="sd">        slug (SlugField): A unique slug for the category, used for URL</span>
+<span class="sd">        generation.</span>
+<span class="sd">    Methods:</span>
+<span class="sd">        __str__(): Returns the string representation of the category,</span>
+<span class="sd">        which is the category name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">slug</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">SlugField</span><span class="p">(</span><span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Category.__str__">
+<a class="viewcode-back" href="../../newsApp.html#newsApp.admin.Category.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jarred Weber.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
