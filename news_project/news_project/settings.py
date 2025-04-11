@@ -84,11 +84,14 @@ WSGI_APPLICATION = "news_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "news_db",
-        "USER": "root",
-        "PASSWORD": "JuniorRece55ion475",
-        "HOST": "host.docker.internal",  # Changed from "localhost"
-        "PORT": "3307",
+        "NAME": "db_name",  # Replace with your actual DB name
+        "USER": "your_db_user",  # Replace with your actual DB user
+        "PASSWORD": "your_db_password",  # Replace with your actual DB password
+        "HOST": (
+            "your_internal_docker_host"  # Replace with your actual DB host
+        ),
+        "PORT": "3307",  # Replace with your actual DB port
+        # (default for MySQL is 3306, 3307 is common for MariaDB)
     }
 }
 
